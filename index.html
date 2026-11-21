@@ -12,14 +12,21 @@
   h1 { font-size:22px; margin:4px 0 2px; }
   h2 { font-size:18px; margin:0 0 10px; }
   p.sous { margin:0 0 12px; color:var(--doux); font-size:15px; }
-  section { background:var(--carte); border:1px solid var(--bord); border-radius:14px; padding:14px; margin-bottom:14px; }
+  section, details { background:var(--carte); border:1px solid var(--bord); border-radius:14px; padding:14px; margin-bottom:14px; }
+  summary { font-size:18px; font-weight:700; cursor:pointer; min-height:28px; }
   button, label.btn { display:block; width:100%; min-height:56px; padding:14px; margin:8px 0; border:0; border-radius:12px; font-size:18px; font-weight:600; color:#fff; background:var(--accent); text-align:center; cursor:pointer; -webkit-tap-highlight-color:transparent; }
-  button.bleu, label.btn.bleu { background:var(--bleu); }
+  button.bleu { background:var(--bleu); }
   button.gris, label.btn.gris { background:#e6ebf0; color:var(--texte); }
   button.rouge { background:var(--danger); }
+  button.petit { min-height:44px; padding:8px; margin:0; font-size:16px; }
   button:disabled { opacity:.45; }
   .rang { display:flex; gap:8px; }
   .rang > * { flex:1; }
+  .ligne { display:flex; align-items:center; justify-content:space-between; gap:10px; margin:10px 0 0; }
+  .ligne > span { font-size:15px; color:var(--doux); flex:0 0 38%; }
+  select, input[type=number] { flex:1; min-width:0; font-size:17px; padding:10px; border:1px solid var(--bord); border-radius:8px; background:#fff; color:var(--texte); }
+  .ligne.case { justify-content:flex-start; }
+  .ligne.case input { width:26px; height:26px; }
   #zone { position:relative; background:#000; border-radius:12px; overflow:hidden; display:none; aspect-ratio:3/4; }
   #zone.on { display:block; }
   #apercu { width:100%; height:100%; object-fit:cover; transform-origin:center; }
@@ -27,24 +34,25 @@
   #decompte.on { display:block; }
   #zoomBloc { display:none; margin:10px 0 0; }
   #zoomBloc.on { display:block; }
-  #zoomBloc input { width:100%; height:40px; }
+  #zoomBloc input[type=range] { width:100%; height:40px; }
+  #presets { display:flex; gap:6px; margin-top:4px; }
+  #presets button { flex:1; }
   .etiq { font-size:14px; color:var(--doux); }
   .vignettes { display:flex; flex-wrap:wrap; gap:8px; margin-top:8px; }
   .vignettes img { width:calc(33.3% - 6px); aspect-ratio:1; object-fit:cover; border-radius:8px; border:1px solid var(--bord); }
   video.lecture { width:100%; border-radius:12px; background:#000; margin-top:8px; }
-  input[type=number] { width:90px; font-size:18px; padding:8px; border:1px solid var(--bord); border-radius:8px; }
   .pastilles { display:flex; flex-wrap:wrap; gap:6px; margin-bottom:12px; }
   .pastille { font-size:13px; padding:4px 10px; border-radius:20px; background:#e6ebf0; }
   .pastille.ok { background:#d6f0e1; color:#14573a; }
   .pastille.non { background:#fbdcd8; color:#8e2a1f; }
   #msg { min-height:22px; font-size:15px; color:var(--danger); margin-top:6px; }
-  textarea { width:100%; min-height:260px; font:13px/1.4 ui-monospace, Menlo, Consolas, monospace; border:1px solid var(--bord); border-radius:10px; padding:10px; background:#fafbfc; color:var(--texte); }
+  textarea { width:100%; min-height:300px; font:13px/1.4 ui-monospace, Menlo, Consolas, monospace; border:1px solid var(--bord); border-radius:10px; padding:10px; background:#fafbfc; color:var(--texte); }
 </style>
 </head>
 <body>
 <main>
   <h1>TEST camera</h1>
-  <p class="sous">Photo et vidéo 360°. Rien d'autre. Fais les tests puis copie le rapport.</p>
+  <p class="sous">Photo et vidéo 360°. Change les réglages, teste, puis copie le rapport.</p>
 
   <div class="pastilles">
     <span class="pastille" id="pHttps">HTTPS ?</span>
@@ -52,8 +60,63 @@
     <span class="pastille" id="pZoom">Zoom ?</span>
   </div>
 
+  <details open>
+    <summary>Réglages caméra</summary>
+    <p class="etiq">Un changement ici rouvre la caméra si elle est ouverte.</p>
+    <div class="ligne"><span>Caméra</span>
+      <select id="selFace"><option value="environment">Arrière</option><option value="user">Avant (selfie)</option></select></div>
+    <div class="ligne"><span>Résolution</span>
+      <select id="selRes">
+        <option value="max">Maximum (4K si possible)</option>
+        <option value="2160">4K (3840×2160)</option>
+        <option value="1080">1080p</option>
+        <option value="720">720p</option>
+        <option value="480">480p</option>
+      </select></div>
+    <div class="ligne"><span>Images/seconde</span>
+      <select id="selFps"><option value="30">30</option><option value="60">60</option><option value="24">24</option><option value="0">Défaut</option></select></div>
+    <div class="ligne case"><input type="checkbox" id="chkSon"><label for="chkSon">&nbsp;Enregistrer le son (micro)</label></div>
+    <div class="ligne"><span>Mode du zoom</span>
+      <select id="selZoomMode">
+        <option value="auto">Auto (réel si possible)</option>
+        <option value="reel">Forcer réel</option>
+        <option value="num">Forcer numérique</option>
+      </select></div>
+  </details>
+
+  <details open>
+    <summary>Réglages vidéo</summary>
+    <div class="ligne"><span>Format</span><select id="selFormat"></select></div>
+    <div class="ligne"><span>Débit</span>
+      <select id="selDebit">
+        <option value="0">Défaut du navigateur</option>
+        <option value="5000000">5 Mb/s</option>
+        <option value="10000000">10 Mb/s</option>
+        <option value="20000000" selected>20 Mb/s</option>
+        <option value="40000000">40 Mb/s</option>
+      </select></div>
+    <div class="ligne"><span>Durée (s)</span><input type="number" id="duree" value="20" min="3" max="120"></div>
+    <div class="ligne"><span>Démarrage</span>
+      <select id="selDelai"><option value="0">Tout de suite</option><option value="3">Après 3 s</option><option value="5">Après 5 s</option><option value="10">Après 10 s</option></select></div>
+  </details>
+
+  <details open>
+    <summary>Réglages photo</summary>
+    <div class="ligne"><span>Méthode</span>
+      <select id="selPhotoMode">
+        <option value="auto">Auto (pleine résolution si possible)</option>
+        <option value="plein">Forcer pleine résolution</option>
+        <option value="video">Image du flux vidéo</option>
+      </select></div>
+    <div class="ligne"><span>Format image</span>
+      <select id="selPhotoFmt"><option value="image/jpeg">JPEG</option><option value="image/png">PNG</option><option value="image/webp">WebP</option></select></div>
+    <div class="ligne"><span>Qualité</span>
+      <select id="selPhotoQ"><option value="1">100 %</option><option value="0.98" selected>98 %</option><option value="0.9">90 %</option><option value="0.8">80 %</option><option value="0.6">60 %</option></select></div>
+    <p class="etiq">Format et qualité ne s'appliquent qu'à « image du flux vidéo » (et au repli).</p>
+  </details>
+
   <section>
-    <h2>1. Caméra arrière</h2>
+    <h2>1. Caméra</h2>
     <button id="bOuvrir" class="bleu">Ouvrir la caméra</button>
     <div id="zone">
       <video id="apercu" playsinline muted autoplay></video>
@@ -62,14 +125,16 @@
     <div id="zoomBloc">
       <div class="etiq">Zoom <span id="zoomType"></span> : <b id="zoomVal">1×</b></div>
       <input type="range" id="zoom" min="1" max="3" step="0.1" value="1">
+      <div id="presets"></div>
+    </div>
+    <div id="extras" style="display:none">
+      <button id="bTorche" class="gris" style="display:none">🔦 Lampe : éteinte</button>
+      <div class="ligne" id="ligneFocus" style="display:none"><span>Mise au point</span><select id="selFocus"></select></div>
     </div>
     <div id="cmd" style="display:none">
       <div class="rang">
         <button id="bPhoto">📷 Photo</button>
         <button id="bVideo" class="rouge">🎥 Vidéo 360°</button>
-      </div>
-      <div style="margin:6px 0">
-        Durée vidéo : <input type="number" id="duree" value="20" min="3" max="120"> secondes
       </div>
       <button id="bFermer" class="gris">Fermer la caméra</button>
     </div>
@@ -90,7 +155,7 @@
 
   <section>
     <h2>2. Plan B : utiliser un fichier</h2>
-    <p class="sous">Ouvre l'appareil photo natif du téléphone.</p>
+    <p class="sous">Ouvre l'appareil photo natif du téléphone (qualité maximale du téléphone).</p>
     <div class="rang">
       <label class="btn gris">📷 Photo<input id="fPhoto" type="file" accept="image/*" capture="environment" hidden></label>
       <label class="btn gris">🎥 Vidéo<input id="fVideo" type="file" accept="video/*" capture="environment" hidden></label>
@@ -112,17 +177,27 @@
 
   var etat = {
     stream: null, track: null, caps: null,
-    zoomReel: null,        // true / false / null (inconnu)
+    zoomDispo: null,       // le zoom réel existe sur l'appareil
+    zoomReel: null,        // le zoom réel est utilisé
     zoomNum: 1,
-    wake: null,            // objet de verrou
-    wakeEtat: 'pas essayé',
-    format: null,          // mime choisi
+    wake: null, wakeEtat: 'pas essayé',
+    format: null,
     formatsTestes: [],
-    erreurs: [],
-    fichiers: [],
-    rec: null, timer: null, chunks: [], debutRec: 0,
-    urls: []
+    erreurs: [], fichiers: [],
+    rec: null, timer: null, attente: null, chunks: [], debutRec: 0,
+    urls: [], torche: false, photoCaps: null, debitUtilise: null
   };
+
+  var CANDIDATS = [
+    'video/mp4;codecs=avc1',
+    'video/mp4;codecs=hvc1',
+    'video/mp4;codecs=avc1.640028',
+    'video/mp4',
+    'video/webm;codecs=vp9',
+    'video/webm;codecs=vp8',
+    'video/webm;codecs=av1',
+    'video/webm'
+  ];
 
   function erreur(ctx, e) {
     var t = (e && (e.name ? e.name + ': ' : '') + (e.message || e)) || String(e);
@@ -130,11 +205,37 @@
     $('msg').textContent = ctx + ' : ' + t;
     rapport();
   }
+  function note(t) { etat.erreurs.push('[' + new Date().toLocaleTimeString('fr-CA') + '] ' + t); }
   function info() { $('msg').textContent = ''; }
   function ko(n) { return n < 1048576 ? (n / 1024).toFixed(0) + ' Ko' : (n / 1048576).toFixed(2) + ' Mo'; }
 
   window.addEventListener('error', function (ev) { erreur('Erreur JS', ev.message || ev.error); });
   window.addEventListener('unhandledrejection', function (ev) { erreur('Promesse rejetée', ev.reason); });
+
+  // ---------- Liste des formats vidéo ----------
+  function remplirFormats() {
+    var sel = $('selFormat'); sel.innerHTML = '';
+    var o = document.createElement('option'); o.value = 'auto'; o.textContent = 'Auto (mp4 d\'abord, puis webm)'; sel.appendChild(o);
+    var mr = typeof MediaRecorder !== 'undefined';
+    CANDIDATS.forEach(function (m) {
+      var ok = false; if (mr) { try { ok = MediaRecorder.isTypeSupported(m); } catch (e) {} }
+      var op = document.createElement('option'); op.value = m; op.textContent = (ok ? '✔ ' : '✘ ') + m;
+      sel.appendChild(op);
+    });
+  }
+  function calculerFormat() {
+    etat.formatsTestes = []; etat.format = null;
+    if (typeof MediaRecorder === 'undefined') { etat.formatsTestes.push('MediaRecorder absent'); return; }
+    CANDIDATS.forEach(function (m) {
+      var ok = false; try { ok = MediaRecorder.isTypeSupported(m); } catch (e) {}
+      etat.formatsTestes.push(m + ' : ' + (ok ? 'oui' : 'non'));
+    });
+    var choix = $('selFormat').value;
+    if (choix !== 'auto') { etat.format = choix; return; }
+    for (var i = 0; i < CANDIDATS.length; i++) {
+      try { if (MediaRecorder.isTypeSupported(CANDIDATS[i])) { etat.format = CANDIDATS[i]; return; } } catch (e) {}
+    }
+  }
 
   // ---------- Écran toujours allumé ----------
   function verrouiller() {
@@ -157,6 +258,18 @@
   });
 
   // ---------- Caméra ----------
+  function contraintes() {
+    var res = $('selRes').value, fps = parseInt($('selFps').value, 10);
+    var v = { facingMode: { ideal: $('selFace').value } };
+    if (res === 'max') { v.width = { ideal: 7680 }; v.height = { ideal: 4320 }; }
+    else if (res === '2160') { v.width = { ideal: 3840 }; v.height = { ideal: 2160 }; }
+    else if (res === '1080') { v.width = { ideal: 1920 }; v.height = { ideal: 1080 }; }
+    else if (res === '720') { v.width = { ideal: 1280 }; v.height = { ideal: 720 }; }
+    else if (res === '480') { v.width = { ideal: 640 }; v.height = { ideal: 480 }; }
+    if (fps) v.frameRate = { ideal: fps };
+    return { video: v, audio: !!$('chkSon').checked };
+  }
+
   function ouvrir() {
     info();
     if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
@@ -164,68 +277,145 @@
       return;
     }
     fermer(true);
-    navigator.mediaDevices.getUserMedia({
-      video: { facingMode: { ideal: 'environment' }, width: { ideal: 1920 }, height: { ideal: 1080 } },
-      audio: false
-    }).then(function (s) {
+    navigator.mediaDevices.getUserMedia(contraintes()).then(function (s) {
       etat.stream = s; etat.track = s.getVideoTracks()[0];
       var v = $('apercu');
       v.muted = true; v.setAttribute('playsinline', ''); v.srcObject = s;
       var p = v.play(); if (p && p.catch) p.catch(function (e) { erreur('Lecture aperçu', e); });
-      $('zone').classList.add('on'); $('cmd').style.display = 'block';
+      $('zone').classList.add('on'); $('cmd').style.display = 'block'; $('extras').style.display = 'block';
       $('bOuvrir').style.display = 'none';
-      initZoom(); verrouiller(); choisirFormat(); rapport();
+      initZoom(); initExtras(); verrouiller(); calculerFormat(); lirePhotoCaps(); rapport();
     }).catch(function (e) { erreur('Ouverture caméra', e); });
   }
 
   function fermer(silencieux) {
     if (etat.rec && etat.rec.state !== 'inactive') { try { etat.rec.stop(); } catch (e) {} }
-    clearInterval(etat.timer);
+    clearInterval(etat.timer); clearTimeout(etat.attente);
     if (etat.stream) etat.stream.getTracks().forEach(function (t) { t.stop(); });
-    etat.stream = null; etat.track = null;
+    etat.stream = null; etat.track = null; etat.torche = false;
     $('apercu').srcObject = null; $('apercu').style.transform = '';
-    $('zone').classList.remove('on'); $('cmd').style.display = 'none'; $('zoomBloc').classList.remove('on');
-    $('decompte').classList.remove('on'); $('bOuvrir').style.display = 'block';
+    $('zone').classList.remove('on'); $('cmd').style.display = 'none'; $('extras').style.display = 'none';
+    $('zoomBloc').classList.remove('on'); $('decompte').classList.remove('on'); $('bOuvrir').style.display = 'block';
+    $('bVideo').textContent = '🎥 Vidéo 360°'; $('bVideo').onclick = video; $('bPhoto').disabled = false;
     deverrouiller();
     if (!silencieux) rapport();
   }
+
+  // Un changement de réglage caméra rouvre la caméra
+  ['selFace', 'selRes', 'selFps', 'chkSon'].forEach(function (id) {
+    $(id).addEventListener('change', function () { if (etat.stream) ouvrir(); else rapport(); });
+  });
+  $('selZoomMode').addEventListener('change', function () { if (etat.stream) { $('apercu').style.transform = ''; initZoom(); } rapport(); });
+  $('selFormat').addEventListener('change', function () { calculerFormat(); rapport(); });
+  ['selDebit', 'selPhotoMode', 'selPhotoFmt', 'selPhotoQ', 'selDelai', 'duree'].forEach(function (id) {
+    $(id).addEventListener('change', rapport);
+  });
 
   // ---------- Zoom ----------
   function initZoom() {
     var caps = null;
     try { caps = etat.track.getCapabilities ? etat.track.getCapabilities() : null; } catch (e) { erreur('getCapabilities', e); }
     etat.caps = caps; etat.zoomNum = 1;
+    etat.zoomDispo = !!(caps && caps.zoom);
+    var mode = $('selZoomMode').value;
+    if (mode === 'reel' && !etat.zoomDispo) note('Zoom réel demandé mais absent : repli sur le zoom numérique.');
+    etat.zoomReel = etat.zoomDispo && mode !== 'num';
     var z = $('zoom');
-    if (caps && caps.zoom) {
-      etat.zoomReel = true;
+    if (etat.zoomReel) {
       z.min = caps.zoom.min; z.max = caps.zoom.max; z.step = caps.zoom.step || 0.1; z.value = caps.zoom.min;
-      $('zoomType').textContent = '(réel)';
-      etat.zoomNum = caps.zoom.min;
+      $('zoomType').textContent = '(réel)'; etat.zoomNum = caps.zoom.min;
     } else {
-      etat.zoomReel = false;
-      z.min = 1; z.max = 3; z.step = 0.1; z.value = 1;
+      if (etat.zoomDispo) { try { etat.track.applyConstraints({ advanced: [{ zoom: caps.zoom.min }] }); } catch (e) {} }
+      z.min = 1; z.max = 5; z.step = 0.1; z.value = 1;
       $('zoomType').textContent = '(numérique)';
     }
     $('zoomVal').textContent = (+z.value).toFixed(1) + '×';
+    // boutons rapides
+    var P = $('presets'); P.innerHTML = '';
+    [1, 2, 3, 5, 10].forEach(function (n) {
+      if (n > parseFloat(z.max)) return;
+      var b = document.createElement('button'); b.className = 'gris petit'; b.textContent = n + '×';
+      b.onclick = function () { appliquerZoom(Math.max(parseFloat(z.min), n)); };
+      P.appendChild(b);
+    });
     $('zoomBloc').classList.add('on');
     majPastilles();
   }
-  $('zoom').addEventListener('input', function () {
-    var val = parseFloat(this.value);
-    etat.zoomNum = val;
+  function appliquerZoom(val) {
+    var z = $('zoom'); val = Math.min(parseFloat(z.max), Math.max(parseFloat(z.min), val));
+    z.value = val; etat.zoomNum = val;
     $('zoomVal').textContent = val.toFixed(1) + '×';
     if (etat.zoomReel && etat.track) {
       etat.track.applyConstraints({ advanced: [{ zoom: val }] }).catch(function (e) { erreur('Zoom réel', e); });
     } else {
       $('apercu').style.transform = 'scale(' + val + ')';
     }
+  }
+  $('zoom').addEventListener('input', function () { appliquerZoom(parseFloat(this.value)); });
+
+  // ---------- Lampe et mise au point ----------
+  function initExtras() {
+    var c = etat.caps || {};
+    var bt = $('bTorche');
+    bt.style.display = c.torch ? 'block' : 'none'; bt.textContent = '🔦 Lampe : éteinte';
+    var lf = $('ligneFocus'), sf = $('selFocus'); sf.innerHTML = '';
+    if (c.focusMode && c.focusMode.length) {
+      c.focusMode.forEach(function (m) { var o = document.createElement('option'); o.value = m; o.textContent = m; sf.appendChild(o); });
+      try { var cur = etat.track.getSettings().focusMode; if (cur) sf.value = cur; } catch (e) {}
+      lf.style.display = 'flex';
+    } else lf.style.display = 'none';
+  }
+  $('bTorche').addEventListener('click', function () {
+    if (!etat.track) return;
+    var on = !etat.torche;
+    etat.track.applyConstraints({ advanced: [{ torch: on }] }).then(function () {
+      etat.torche = on; $('bTorche').textContent = '🔦 Lampe : ' + (on ? 'allumée' : 'éteinte'); rapport();
+    }).catch(function (e) { erreur('Lampe', e); });
+  });
+  $('selFocus').addEventListener('change', function () {
+    if (!etat.track) return;
+    etat.track.applyConstraints({ advanced: [{ focusMode: this.value }] }).then(rapport).catch(function (e) { erreur('Mise au point', e); });
   });
 
   // ---------- Photo ----------
+  function lirePhotoCaps() {
+    etat.photoCaps = null;
+    if (typeof ImageCapture === 'undefined' || !etat.track) return;
+    try {
+      var ic = new ImageCapture(etat.track);
+      if (!ic.getPhotoCapabilities) return;
+      ic.getPhotoCapabilities().then(function (c) {
+        etat.photoCaps = c.imageWidth && c.imageHeight ? (c.imageWidth.max + '×' + c.imageHeight.max) : 'sans info';
+        rapport();
+      }).catch(function () {});
+    } catch (e) {}
+  }
+
   function photo() {
     info();
-    var v = $('apercu');
+    var v = $('apercu'), mode = $('selPhotoMode').value;
     if (!etat.stream || !v.videoWidth) { erreur('Photo', 'caméra pas prête'); return; }
+    var pleinPossible = typeof ImageCapture !== 'undefined' && etat.track && (etat.zoomReel || etat.zoomNum <= 1);
+    if (mode === 'video') { photoCanvas(); return; }
+    if (!pleinPossible) {
+      if (mode === 'plein') note('Pleine résolution indisponible (ImageCapture absent ou zoom numérique actif) : repli sur image vidéo.');
+      photoCanvas(); return;
+    }
+    var ic = null, max = {};
+    try { ic = new ImageCapture(etat.track); } catch (e) { ic = null; }
+    if (!ic || !ic.getPhotoCapabilities) { note('ImageCapture incomplet : repli sur image vidéo.'); photoCanvas(); return; }
+    ic.getPhotoCapabilities().then(function (c) {
+      if (c.imageWidth && c.imageHeight) max = { imageWidth: c.imageWidth.max, imageHeight: c.imageHeight.max };
+      return ic.takePhoto(max);
+    }).then(function (b) {
+      var u = URL.createObjectURL(b), im = new Image();
+      im.onload = function () { URL.revokeObjectURL(u); ajouterPhoto(b, 'caméra (pleine résolution)', im.naturalWidth + '×' + im.naturalHeight); };
+      im.onerror = function () { ajouterPhoto(b, 'caméra (pleine résolution)', '?'); };
+      im.src = u;
+    }).catch(function (e) { note('takePhoto a échoué, repli sur image vidéo : ' + (e.name || e)); photoCanvas(); });
+  }
+  function photoCanvas() {
+    var v = $('apercu'), fmt = $('selPhotoFmt').value, q = parseFloat($('selPhotoQ').value);
     var w = v.videoWidth, h = v.videoHeight, sx = 0, sy = 0, sw = w, sh = h;
     if (!etat.zoomReel && etat.zoomNum > 1) {
       sw = w / etat.zoomNum; sh = h / etat.zoomNum; sx = (w - sw) / 2; sy = (h - sh) / 2;
@@ -233,9 +423,10 @@
     var c = document.createElement('canvas'); c.width = Math.round(sw); c.height = Math.round(sh);
     c.getContext('2d').drawImage(v, sx, sy, sw, sh, 0, 0, c.width, c.height);
     c.toBlob(function (b) {
-      if (!b) { erreur('Photo', 'toBlob a échoué'); return; }
-      ajouterPhoto(b, 'caméra', c.width + '×' + c.height);
-    }, 'image/jpeg', 0.9);
+      if (!b) { erreur('Photo', 'toBlob a échoué (' + fmt + ')'); return; }
+      if (b.type !== fmt) note('Format image ' + fmt + ' non supporté, obtenu ' + b.type);
+      ajouterPhoto(b, 'caméra (image vidéo' + (etat.zoomReel ? '' : etat.zoomNum > 1 ? ', recadrée zoom numérique' : '') + ')', c.width + '×' + c.height);
+    }, fmt, q);
   }
   function ajouterPhoto(blob, source, dims) {
     var url = URL.createObjectURL(blob); etat.urls.push(url);
@@ -247,38 +438,51 @@
   }
 
   // ---------- Vidéo ----------
-  function choisirFormat() {
-    var liste = ['video/mp4;codecs=avc1', 'video/mp4', 'video/webm;codecs=vp9', 'video/webm;codecs=vp8', 'video/webm'];
-    etat.formatsTestes = []; etat.format = null;
-    if (typeof MediaRecorder === 'undefined') { etat.formatsTestes.push('MediaRecorder absent'); return; }
-    liste.forEach(function (m) {
-      var ok = false; try { ok = MediaRecorder.isTypeSupported(m); } catch (e) {}
-      etat.formatsTestes.push(m + ' : ' + (ok ? 'oui' : 'non'));
-      if (ok && !etat.format) etat.format = m;
-    });
-  }
-
   function video() {
     info();
     if (!etat.stream) { erreur('Vidéo', 'ouvre la caméra d\'abord'); return; }
     if (typeof MediaRecorder === 'undefined') { erreur('Vidéo', 'MediaRecorder non supporté. Utilise le plan B.'); return; }
     var duree = Math.max(3, Math.min(120, parseInt($('duree').value, 10) || 20));
     $('duree').value = duree;
+    var delai = parseInt($('selDelai').value, 10) || 0;
+    $('bPhoto').disabled = true;
+    $('bVideo').textContent = '⏹ Annuler / Arrêter'; $('bVideo').onclick = annuler;
+    var d = $('decompte'); d.classList.add('on');
+    var restant = delai;
+    var compte = function () {
+      if (restant > 0) { d.textContent = 'Départ dans ' + restant + ' s'; restant--; etat.attente = setTimeout(compte, 1000); }
+      else demarrer(duree);
+    };
+    compte();
+  }
+  function annuler() {
+    clearTimeout(etat.attente);
+    if (etat.rec && etat.rec.state !== 'inactive') { arreter(); return; }
+    $('decompte').classList.remove('on'); $('bVideo').textContent = '🎥 Vidéo 360°'; $('bVideo').onclick = video; $('bPhoto').disabled = false;
+  }
+  function demarrer(duree) {
+    calculerFormat();
     var opts = etat.format ? { mimeType: etat.format } : {};
+    var debit = parseInt($('selDebit').value, 10) || 0;
+    if (debit) opts.videoBitsPerSecond = debit;
     var r;
-    try { r = new MediaRecorder(etat.stream, opts); }
-    catch (e) { erreur('MediaRecorder', e); return; }
+    try { r = new MediaRecorder(etat.stream, opts); etat.debitUtilise = debit || 'défaut'; }
+    catch (e) {
+      note('MediaRecorder a refusé ces réglages (' + (e.name || e) + '), repli sans débit imposé.');
+      try { delete opts.videoBitsPerSecond; r = new MediaRecorder(etat.stream, opts); etat.debitUtilise = 'défaut (repli)'; }
+      catch (e2) {
+        note('Format ' + etat.format + ' refusé, repli sur le défaut du navigateur.');
+        try { r = new MediaRecorder(etat.stream); etat.debitUtilise = 'défaut (repli)'; }
+        catch (e3) { erreur('MediaRecorder', e3); annuler(); return; }
+      }
+    }
     etat.rec = r; etat.chunks = [];
     r.ondataavailable = function (ev) { if (ev.data && ev.data.size) etat.chunks.push(ev.data); };
     r.onerror = function (ev) { erreur('Enregistrement', ev.error || 'erreur inconnue'); };
     r.onstop = function () { finirVideo(r.mimeType || etat.format || 'video/mp4'); };
-    try { r.start(1000); } catch (e) { erreur('Démarrage enregistrement', e); return; }
+    try { r.start(1000); } catch (e) { erreur('Démarrage enregistrement', e); annuler(); return; }
     etat.debutRec = Date.now();
-    $('bVideo').disabled = true; $('bPhoto').disabled = true;
-    $('bVideo').textContent = '⏹ Arrêter';
-    $('bVideo').disabled = false;
-    $('bVideo').onclick = arreter;
-    var d = $('decompte'); d.classList.add('on');
+    var d = $('decompte');
     var maj = function () {
       var s = Math.round((Date.now() - etat.debutRec) / 1000);
       d.textContent = 'REC ' + s + ' / ' + duree + ' s  (reste ' + Math.max(0, duree - s) + ')';
@@ -315,7 +519,10 @@
   // ---------- Plan B ----------
   $('fPhoto').addEventListener('change', function () {
     var f = this.files && this.files[0]; if (!f) return;
-    ajouterPhoto(f, 'fichier (' + f.name + ')'); this.value = '';
+    var u = URL.createObjectURL(f), im = new Image();
+    im.onload = function () { URL.revokeObjectURL(u); ajouterPhoto(f, 'fichier (' + f.name + ')', im.naturalWidth + '×' + im.naturalHeight); };
+    im.onerror = function () { ajouterPhoto(f, 'fichier (' + f.name + ')', '?'); };
+    im.src = u; this.value = '';
   });
   $('fVideo').addEventListener('change', function () {
     var f = this.files && this.files[0]; if (!f) return;
@@ -329,7 +536,7 @@
   function majPastilles() {
     pastille('pHttps', window.isSecureContext ? 'HTTPS ok' : 'Pas HTTPS', window.isSecureContext);
     pastille('pVerrou', 'Écran : ' + etat.wakeEtat, etat.wakeEtat === 'actif' ? true : (/erreur|non supp/.test(etat.wakeEtat) ? false : null));
-    pastille('pZoom', etat.zoomReel === null ? 'Zoom ?' : etat.zoomReel ? 'Zoom réel' : 'Zoom numérique', etat.zoomReel === null ? null : etat.zoomReel);
+    pastille('pZoom', etat.zoomDispo === null ? 'Zoom ?' : etat.zoomReel ? 'Zoom réel' : (etat.zoomDispo ? 'Zoom numérique (forcé)' : 'Zoom numérique'), etat.zoomDispo === null ? null : etat.zoomReel);
   }
   function systeme() {
     var ua = navigator.userAgent, os = 'inconnu';
@@ -343,6 +550,7 @@
     var standalone = (window.navigator.standalone === true) || (window.matchMedia && matchMedia('(display-mode: standalone)').matches);
     return { os: os, nav: nav, ua: ua, standalone: standalone };
   }
+  function txt(o) { try { return JSON.stringify(o); } catch (e) { return '?'; } }
   function rapport() {
     var s = systeme(), L = [];
     L.push('RAPPORT DE TEST CAMÉRA');
@@ -358,16 +566,34 @@
     L.push('HTTPS / contexte sécurisé : ' + (window.isSecureContext ? 'oui' : 'NON'));
     L.push('getUserMedia : ' + (navigator.mediaDevices && navigator.mediaDevices.getUserMedia ? 'disponible' : 'ABSENT'));
     L.push('MediaRecorder : ' + (typeof MediaRecorder !== 'undefined' ? 'disponible' : 'ABSENT'));
+    L.push('ImageCapture (photo pleine résolution) : ' + (typeof ImageCapture !== 'undefined' ? 'disponible' : 'absent'));
     L.push('Écran allumé (wakeLock) : ' + etat.wakeEtat);
     L.push('');
+    L.push('RÉGLAGES CHOISIS');
+    L.push('Caméra : ' + $('selFace').value + ' | Résolution : ' + $('selRes').value + ' | fps : ' + $('selFps').value + ' | Son : ' + ($('chkSon').checked ? 'oui' : 'non'));
+    L.push('Zoom mode : ' + $('selZoomMode').value + ' | Vidéo : format ' + $('selFormat').value + ', débit ' + $('selDebit').value + ', durée ' + $('duree').value + ' s, délai ' + $('selDelai').value + ' s');
+    L.push('Photo : méthode ' + $('selPhotoMode').value + ', ' + $('selPhotoFmt').value + ', qualité ' + $('selPhotoQ').value);
+    L.push('');
     L.push('ZOOM');
-    if (etat.zoomReel === null) L.push('Pas encore testé (ouvre la caméra)');
-    else if (etat.zoomReel) L.push('Zoom RÉEL (applyConstraints) : oui, plage ' + etat.caps.zoom.min + ' à ' + etat.caps.zoom.max);
-    else L.push('Zoom réel : non (zoom numérique utilisé)');
-    if (etat.track) { try { var st = etat.track.getSettings(); L.push('Résolution caméra : ' + (st.width || '?') + '×' + (st.height || '?') + ' | facingMode : ' + (st.facingMode || '?')); } catch (e) {} }
+    if (etat.zoomDispo === null) L.push('Pas encore testé (ouvre la caméra)');
+    else {
+      L.push('Zoom réel disponible (applyConstraints) : ' + (etat.zoomDispo ? 'oui, plage ' + etat.caps.zoom.min + ' à ' + etat.caps.zoom.max : 'non'));
+      L.push('Zoom utilisé : ' + (etat.zoomReel ? 'réel' : 'numérique') + ' | valeur actuelle : ' + etat.zoomNum.toFixed(1) + '×');
+    }
+    L.push('');
+    L.push('CAMÉRA (réglages réels obtenus)');
+    if (etat.track) {
+      try { L.push('getSettings : ' + txt(etat.track.getSettings())); } catch (e) {}
+      if (etat.caps) {
+        var c = etat.caps;
+        L.push('Capacités : largeur max ' + (c.width ? c.width.max : '?') + ', hauteur max ' + (c.height ? c.height.max : '?') + ', fps max ' + (c.frameRate ? c.frameRate.max : '?'));
+        L.push('Lampe : ' + (c.torch ? 'oui' : 'non') + ' | Mise au point : ' + (c.focusMode ? c.focusMode.join(', ') : 'non') + ' | Exposition : ' + (c.exposureMode ? c.exposureMode.join(', ') : 'non'));
+      }
+      L.push('Photo pleine résolution max : ' + (etat.photoCaps || 'non disponible'));
+    } else L.push('Caméra fermée');
     L.push('');
     L.push('FORMAT VIDÉO');
-    if (etat.formatsTestes.length) { L.push('Choisi : ' + (etat.format || 'aucun (défaut du navigateur)')); etat.formatsTestes.forEach(function (x) { L.push('  ' + x); }); }
+    if (etat.formatsTestes.length) { L.push('Choisi : ' + (etat.format || 'aucun (défaut du navigateur)') + ' | Débit utilisé : ' + (etat.debitUtilise || '-')); etat.formatsTestes.forEach(function (x) { L.push('  ' + x); }); }
     else L.push('Pas encore testé (ouvre la caméra)');
     L.push('');
     L.push('FICHIERS (' + etat.fichiers.length + ')');
@@ -376,7 +602,7 @@
       L.push((i + 1) + '. ' + f.type + ' | ' + f.source + ' | ' + f.mime + ' | ' + ko(f.taille) + ' | ' + f.dims + (f.duree != null ? ' | ' + f.duree.toFixed(1) + ' s' : ''));
     });
     L.push('');
-    L.push('ERREURS (' + etat.erreurs.length + ')');
+    L.push('ERREURS ET REPLIS (' + etat.erreurs.length + ')');
     if (!etat.erreurs.length) L.push('Aucune');
     etat.erreurs.forEach(function (e) { L.push(e); });
     $('rapport').value = L.join('\n');
@@ -402,7 +628,7 @@
   $('bFermer').addEventListener('click', function () { fermer(); });
   window.addEventListener('pagehide', function () { fermer(true); });
 
-  rapport();
+  remplirFormats(); calculerFormat(); rapport();
 })();
 </script>
 </body>
