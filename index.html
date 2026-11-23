@@ -14,9 +14,10 @@
   p.sous { margin:0 0 12px; color:var(--doux); font-size:15px; }
   section, details { background:var(--carte); border:1px solid var(--bord); border-radius:14px; padding:14px; margin-bottom:14px; }
   summary { font-size:18px; font-weight:700; cursor:pointer; min-height:28px; }
-  button, label.btn { display:block; width:100%; min-height:56px; padding:14px; margin:8px 0; border:0; border-radius:12px; font-size:18px; font-weight:600; color:#fff; background:var(--accent); text-align:center; cursor:pointer; -webkit-tap-highlight-color:transparent; }
+  a.btn { text-decoration:none; }
+  button, label.btn, a.btn { display:block; width:100%; min-height:56px; padding:14px; margin:8px 0; border:0; border-radius:12px; font-size:18px; font-weight:600; color:#fff; background:var(--accent); text-align:center; cursor:pointer; -webkit-tap-highlight-color:transparent; }
   button.bleu { background:var(--bleu); }
-  button.gris, label.btn.gris { background:#e6ebf0; color:var(--texte); }
+  button.gris, label.btn.gris, a.btn.gris { background:#e6ebf0; color:var(--texte); }
   button.rouge { background:var(--danger); }
   button.petit { min-height:44px; padding:8px; margin:0; font-size:16px; }
   button:disabled { opacity:.45; }
@@ -95,6 +96,8 @@
         <option value="20000000" selected>20 Mb/s</option>
         <option value="40000000">40 Mb/s</option>
       </select></div>
+    <div class="ligne"><span>Découpage</span>
+      <select id="selChunk"><option value="0">Aucun (recommandé iPhone)</option><option value="1000">Morceaux de 1 s</option></select></div>
     <div class="ligne"><span>Durée (s)</span><input type="number" id="duree" value="20" min="3" max="120"></div>
     <div class="ligne"><span>Démarrage</span>
       <select id="selDelai"><option value="0">Tout de suite</option><option value="3">Après 3 s</option><option value="5">Après 5 s</option><option value="10">Après 10 s</option></select></div>
@@ -307,7 +310,7 @@
   });
   $('selZoomMode').addEventListener('change', function () { if (etat.stream) { $('apercu').style.transform = ''; initZoom(); } rapport(); });
   $('selFormat').addEventListener('change', function () { calculerFormat(); rapport(); });
-  ['selDebit', 'selPhotoMode', 'selPhotoFmt', 'selPhotoQ', 'selDelai', 'duree'].forEach(function (id) {
+  ['selDebit', 'selChunk', 'selPhotoMode', 'selPhotoFmt', 'selPhotoQ', 'selDelai', 'duree'].forEach(function (id) {
     $(id).addEventListener('change', rapport);
   });
 
@@ -322,8 +325,11 @@
     etat.zoomReel = etat.zoomDispo && mode !== 'num';
     var z = $('zoom');
     if (etat.zoomReel) {
-      z.min = caps.zoom.min; z.max = caps.zoom.max; z.step = caps.zoom.step || 0.1; z.value = caps.zoom.min;
-      $('zoomType').textContent = '(réel)'; etat.zoomNum = caps.zoom.min;
+      z.min = caps.zoom.min; z.max = caps.zoom.max; z.step = caps.zoom.step || 0.1;
+      var z0 = caps.zoom.min;
+      try { var sz = etat.track.getSettings().zoom; if (sz) z0 = sz; } catch (e) {}
+      z.value = z0;
+      $('zoomType').textContent = '(réel)'; etat.zoomNum = z0;
     } else {
       if (etat.zoomDispo) { try { etat.track.applyConstraints({ advanced: [{ zoom: caps.zoom.min }] }); } catch (e) {} }
       z.min = 1; z.max = 5; z.step = 0.1; z.value = 1;
@@ -480,7 +486,8 @@
     r.ondataavailable = function (ev) { if (ev.data && ev.data.size) etat.chunks.push(ev.data); };
     r.onerror = function (ev) { erreur('Enregistrement', ev.error || 'erreur inconnue'); };
     r.onstop = function () { finirVideo(r.mimeType || etat.format || 'video/mp4'); };
-    try { r.start(1000); } catch (e) { erreur('Démarrage enregistrement', e); annuler(); return; }
+    var morceau = parseInt($('selChunk').value, 10) || 0;
+    try { if (morceau) r.start(morceau); else r.start(); } catch (e) { erreur('Démarrage enregistrement', e); annuler(); return; }
     etat.debutRec = Date.now();
     var d = $('decompte');
     var maj = function () {
@@ -499,7 +506,8 @@
     $('decompte').classList.remove('on');
     $('bVideo').textContent = '🎥 Vidéo 360°'; $('bVideo').onclick = video; $('bPhoto').disabled = false;
     if (!etat.chunks.length) { erreur('Vidéo', 'aucune donnée enregistrée'); return; }
-    var blob = new Blob(etat.chunks, { type: mime });
+    // Safari relit mal un Blob dont le type contient « codecs=… » : on garde seulement le type simple
+    var blob = new Blob(etat.chunks, { type: String(mime).split(';')[0] });
     montrerVideo(blob, 'caméra', duree, mime);
   }
   function montrerVideo(blob, source, duree, mime) {
@@ -512,7 +520,12 @@
       if (f.duree == null && isFinite(l.duration)) f.duree = l.duration;
       rapport();
     };
-    l.onerror = function () { erreur('Lecture de la vidéo', 'le navigateur ne peut pas relire ce fichier (' + f.mime + ')'); };
+    l.onerror = function () { erreur('Lecture de la vidéo', 'le navigateur ne peut pas relire ce fichier (' + f.mime + ')' + (l.error ? ' code ' + l.error.code : '')); };
+    var vieux = $('lienVideo'); if (vieux) vieux.remove();
+    var a = document.createElement('a'); a.id = 'lienVideo'; a.className = 'btn gris'; a.href = url;
+    var ext = /mp4/.test(f.mime) ? 'mp4' : /webm/.test(f.mime) ? 'webm' : 'mov';
+    a.download = 'test-camera.' + ext; a.textContent = '⬇ Télécharger / enregistrer la vidéo';
+    l.parentNode.appendChild(a);
     rapport();
   }
 
