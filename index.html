@@ -70,7 +70,7 @@
       <select id="selRes">
         <option value="max">Maximum (4K si possible)</option>
         <option value="2160">4K (3840×2160)</option>
-        <option value="1080">1080p</option>
+        <option value="1080" selected>1080p (recommandé pour la vidéo)</option>
         <option value="720">720p</option>
         <option value="480">480p</option>
       </select></div>
@@ -93,7 +93,8 @@
         <option value="0">Défaut du navigateur</option>
         <option value="5000000">5 Mb/s</option>
         <option value="10000000">10 Mb/s</option>
-        <option value="20000000" selected>20 Mb/s</option>
+        <option value="20000000">20 Mb/s</option>
+        <option value="24000000" selected>24 Mb/s (comme la vidéo de référence)</option>
         <option value="40000000">40 Mb/s</option>
       </select></div>
     <div class="ligne"><span>Découpage</span>
@@ -192,9 +193,10 @@
   };
 
   var CANDIDATS = [
+    'video/mp4;codecs=avc1.64002A',
+    'video/mp4;codecs=avc1.640028',
     'video/mp4;codecs=avc1',
     'video/mp4;codecs=hvc1',
-    'video/mp4;codecs=avc1.640028',
     'video/mp4',
     'video/webm;codecs=vp9',
     'video/webm;codecs=vp8',
