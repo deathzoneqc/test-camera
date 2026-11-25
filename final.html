@@ -99,6 +99,7 @@ window.CameraPlante = (function () {
     '.cp .cp-terminer{justify-self:end;background:#ffd60a;color:#000;font-weight:700;border-radius:24px;padding:12px 16px;min-height:48px}',
     '.cp-panneau{position:absolute;left:0;right:0;bottom:0;max-height:80%;overflow-y:auto;background:#1c1c1e;border-radius:18px 18px 0 0;padding:14px 16px calc(18px + env(safe-area-inset-bottom));z-index:3}',
     '.cp-rang{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:10px 0;border-bottom:1px solid #333}',
+    '.cp-infos{white-space:pre-line;font-size:12px;color:#8e8e93;padding-top:12px;user-select:text;-webkit-user-select:text}',
     '.cp-choix{display:flex;background:#2c2c2e;border-radius:9px;padding:2px}',
     '.cp .cp-choix button{padding:7px 11px;border-radius:7px;font-size:14px}',
     '.cp .cp-choix button.actif{background:#ffd60a;color:#000;font-weight:700}',
@@ -298,15 +299,24 @@ window.CameraPlante = (function () {
   // 0,5× : soit la caméra actuelle descend sous 1×, soit on cherche la caméra grand angle du téléphone
   function chercherGrandAngle(jeton) {
     var s = c;
-    if (s.chercheFait || s.face !== 'environment' || !navigator.mediaDevices.enumerateDevices) return;
+    if (s.face !== 'environment' || !navigator.mediaDevices.enumerateDevices) return;
+    var descend = s.caps.zoom && s.caps.zoom.min < 1;
+    if (s.chercheFait) {
+      // la caméra combinée ne descend pas sous 1× : on se rabat sur la caméra ultra grand angle séparée
+      if (s.grandAngle && !descend && s.ultraTrouvee) { s.grandAngle = null; s.ultra = s.ultraTrouvee; demarrer(); }
+      return;
+    }
     s.chercheFait = true;
-    if (s.caps.zoom && s.caps.zoom.min < 1) return;
     navigator.mediaDevices.enumerateDevices().then(function (liste) {
-      if (c !== s || s.jeton !== jeton) return;
-      var arriere = liste.filter(function (d) { return d.kind === 'videoinput' && !/front|avant|frontal|facetime/i.test(d.label); });
-      var combinee = arriere.filter(function (d) { return /triple|dual wide|double grand[ -]angle/i.test(d.label); })[0];
-      if (combinee && !s.rec && !s.occupe) { s.grandAngle = combinee.deviceId; demarrer(); return; }
+      if (c !== s) return;
+      var videos = liste.filter(function (d) { return d.kind === 'videoinput'; });
+      s.cameras = videos.map(function (d) { return d.label || '(sans nom)'; });
+      if (s.jeton !== jeton || descend) return;
+      var arriere = videos.filter(function (d) { return !/front|avant|frontal|facetime/i.test(d.label); });
       var ultra = arriere.filter(function (d) { return /ultra/i.test(d.label); })[0];
+      var combinee = arriere.filter(function (d) { return /triple|dual wide|double.*(grand|large)/i.test(d.label); })[0];
+      s.ultraTrouvee = ultra ? ultra.deviceId : null;
+      if (combinee && !s.rec && !s.occupe) { s.grandAngle = combinee.deviceId; demarrer(); return; }
       if (ultra) { s.ultra = ultra.deviceId; majZooms(); }
     }).catch(function () {});
   }
@@ -433,7 +443,7 @@ window.CameraPlante = (function () {
   }
   function inverser() {
     c.face = c.face === 'environment' ? 'user' : 'environment';
-    c.surUltra = false; c.ultra = null; c.grandAngle = null; c.chercheFait = false; c.zoom = 1;
+    c.surUltra = false; c.ultra = null; c.ultraTrouvee = null; c.grandAngle = null; c.chercheFait = false; c.zoom = 1;
     demarrer();
   }
   function lampe() {
@@ -460,7 +470,11 @@ window.CameraPlante = (function () {
       });
       h += '</span></div>';
     });
-    q('.cp-panneau').innerHTML = h;
+    q('.cp-panneau').innerHTML = h + '<div class="cp-infos"></div>';
+    var z = c.caps.zoom;
+    q('.cp-infos').textContent = 'Dépannage zoom\nZoom réel : ' + (z ? z.min + ' à ' + z.max : 'non') +
+      '\nCaméra utilisée : ' + (c.piste && c.piste.label || '?') +
+      '\nCaméras du téléphone :\n' + (c.cameras || []).join('\n');
   }
   function panneau() {
     if (c.rec || c.occupe) return;
