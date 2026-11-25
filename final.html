@@ -35,7 +35,7 @@
      Aucune dépendance. Exige HTTPS (ou localhost).
 
      CameraPlante.ouvrir({
-       titre: 'GMB-T12-6',
+       titre: 'Plant 6',
        mode: 'photo' ou 'video',          // facultatif
        photos: [...], video: {...},       // déjà prises pour ce plant, facultatif
        onTerminer: function (r) {         // r = { photos:[{blob,url,largeur,hauteur,date}], video:{blob,url,mime,duree,date} ou null }
@@ -694,7 +694,7 @@ window.CameraPlante = (function () {
 <script>
 (function () {
   'use strict';
-  var PLANTS = [6, 18, 30, 42, 3, 15, 27, 39].map(function (n) { return { nom: 'GMB-T12-' + n, n: n, photos: [], video: null }; });
+  var PLANTS = [6, 18, 30, 42, 3, 15, 27, 39].map(function (n) { return { nom: 'Plant ' + n, n: n, photos: [], video: null }; });
   var liste = document.getElementById('liste');
   function dessiner() {
     liste.innerHTML = '';
@@ -702,7 +702,7 @@ window.CameraPlante = (function () {
       var fait = p.photos.length || p.video;
       var d = document.createElement('div'); d.className = 'plante' + (fait ? ' ok' : '');
       d.innerHTML = '<div class="haut"><div><b>Plant ' + p.n + '</b><small></small></div><button>📷 Caméra</button></div><div class="minis"></div>';
-      d.querySelector('small').textContent = p.nom + (fait ? ' · ' + p.photos.length + ' photo' + (p.photos.length > 1 ? 's' : '') + (p.video ? ' + vidéo' : '') : ' · à faire');
+      d.querySelector('small').textContent = (fait ? p.photos.length + ' photo' + (p.photos.length > 1 ? 's' : '') + (p.video ? ' + vidéo' : '') : 'à faire');
       var minis = d.querySelector('.minis');
       p.photos.forEach(function (ph) { var im = document.createElement('img'); im.src = ph.url; im.alt = ''; minis.appendChild(im); });
       if (p.video) { var s = document.createElement('span'); s.textContent = '▶'; minis.appendChild(s); }
