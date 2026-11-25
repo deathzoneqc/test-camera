@@ -385,7 +385,8 @@ window.CameraPlante = (function () {
       var b = document.createElement('button');
       var val = i === actif ? c.zoom : n;
       var t = String(Math.round(val * 10) / 10).replace('.', ',');
-      var externe = i === 0 && !grand && c.face === 'environment';   // 0,5 par l'appareil photo du téléphone
+      // Android seulement : 0,5 par l'appareil photo du téléphone. Ailleurs, grisé.
+      var externe = i === 0 && !grand && c.face === 'environment' && /Android/i.test(navigator.userAgent);
       var absent = !externe && ((i === 0 && !grand) || (i > 0 && n > zoomMax()));
       b.textContent = i === actif ? t + '×' : externe ? t + '↗' : t;
       if (externe) b.setAttribute('data-externe', '1');
