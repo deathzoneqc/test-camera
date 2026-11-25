@@ -54,7 +54,9 @@ window.CameraPlante = (function () {
     formatsVideo: ['video/mp4;codecs=avc1.64002A', 'video/mp4;codecs=avc1.640028', 'video/mp4;codecs=avc1', 'video/mp4', 'video/webm;codecs=vp9', 'video/webm'],
     cleReglages: 'cameraPlante.reglages'
   };
-  var DEFAUTS = { grille: true, format: '4:3', taille: 'max', qualiteVideo: 1080, fps: 30 };
+  var IOS = /iPhone|iPad|iPod/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+  // methode : 'directe' = image du flux en pleine résolution ; 'capteur' = takePhoto (rend l'image noire sur iPhone)
+  var DEFAUTS = { grille: true, format: '4:3', taille: 'max', qualiteVideo: 1080, fps: 30, methode: IOS ? 'directe' : 'capteur' };
 
   var CSS = [
     '.cp{position:fixed;inset:0;z-index:9999;background:#000;color:#fff;display:flex;flex-direction:column;font:16px/1.3 -apple-system,system-ui,"Segoe UI",Roboto,sans-serif;user-select:none;-webkit-user-select:none;padding:env(safe-area-inset-top) 0 env(safe-area-inset-bottom)}',
@@ -253,9 +255,10 @@ window.CameraPlante = (function () {
 
   function contraintes() {
     var video = c.mode === 'video';
-    var haut = video ? reglages.qualiteVideo : 1440;
+    var plein = !video && reglages.methode === 'directe';
+    var haut = video ? reglages.qualiteVideo : plein ? 3024 : 1440;
     var v = {
-      width: { ideal: video ? Math.round(haut * 16 / 9) : 1920 },
+      width: { ideal: video ? Math.round(haut * 16 / 9) : plein ? 4032 : 1920 },
       height: { ideal: haut },
       frameRate: { ideal: video ? reglages.fps : 30 }
     };
@@ -475,6 +478,7 @@ window.CameraPlante = (function () {
     ['grille', 'Grille', [[false, 'Non'], [true, 'Oui']]],
     ['format', 'Format photo', [['4:3', '4:3'], ['1:1', 'Carré'], ['16:9', '16:9']]],
     ['taille', 'Taille photo', [['max', 'Max'], ['8', '8 Mpx']]],
+    ['methode', 'Capture photo', [['directe', 'Directe'], ['capteur', 'Capteur']]],
     ['qualiteVideo', 'Qualité vidéo', [[720, '720p'], [1080, '1080p']]],
     ['fps', 'Images par seconde', [[30, '30'], [60, '60']]]
   ];
@@ -490,6 +494,7 @@ window.CameraPlante = (function () {
     q('.cp-panneau').innerHTML = h + '<div class="cp-infos"></div>';
     var z = c.caps.zoom;
     q('.cp-infos').textContent = 'Dépannage zoom\nZoom réel : ' + (z ? z.min + ' à ' + z.max : 'non') +
+      '\nImage : ' + q('video').videoWidth + '×' + q('video').videoHeight + (c.piste ? ' · ' + c.piste.readyState + (c.piste.muted ? ' · muette' : '') : ' · aucune') + (q('video').paused ? ' · en pause' : '') +
       '\nCaméra utilisée : ' + (c.piste && c.piste.label || '?') +
       '\nCaméras du téléphone :\n' + (c.cameras || []).join('\n');
   }
@@ -504,7 +509,7 @@ window.CameraPlante = (function () {
     reglages[cle] = typeof d === 'boolean' ? valeur === 'true' : typeof d === 'number' ? Number(valeur) : valeur;
     if (reglages[cle] === avant) return;
     garderReglages(); dessinerPanneau(); majInterface(); cadrer();
-    if (c.mode === 'video' && (cle === 'qualiteVideo' || cle === 'fps')) demarrer();
+    if (c.mode === 'video' ? (cle === 'qualiteVideo' || cle === 'fps') : cle === 'methode') demarrer();
   }
 
   // ---------- Déclenchement ----------
@@ -536,13 +541,13 @@ window.CameraPlante = (function () {
       var toile = document.createElement('canvas'); toile.width = lw; toile.height = lh;
       toile.getContext('2d').drawImage(source, (w - sw) / 2, (h - sh) / 2, sw, sh, 0, 0, lw, lh);
       return new Promise(function (ok, non) {
-        toile.toBlob(function (b) { if (b) ok({ blob: b, largeur: lw, hauteur: lh }); else non(new Error('image vide')); }, 'image/jpeg', CONFIG.qualiteJpeg);
+        toile.toBlob(function (b) { toile.width = toile.height = 0; if (b) ok({ blob: b, largeur: lw, hauteur: lh }); else non(new Error('image vide')); }, 'image/jpeg', CONFIG.qualiteJpeg);
       });
     }
     function depuisApercu() { return dessiner(video, video.videoWidth, video.videoHeight, recadrage); }
 
     function pleineResolution() {
-      if (typeof ImageCapture === 'undefined' || recadrage > 1) return depuisApercu();
+      if (reglages.methode === 'directe' || typeof ImageCapture === 'undefined' || recadrage > 1) return depuisApercu();
       var ic, minuterie;
       var limite = new Promise(function (ok, non) { minuterie = setTimeout(function () { non(new Error('délai')); }, 8000); });
       var prise = new Promise(function (ok) { ok(new ImageCapture(s.piste)); }).then(function (x) {
@@ -573,6 +578,11 @@ window.CameraPlante = (function () {
       if (c !== s) return;
       if (s.fermerApres) { terminer(true); return; }
       q('[data-a=declencher]').disabled = !s.piste; q('[data-a=terminer]').disabled = false;
+      var rejoue = video.play(); if (rejoue && rejoue.catch) rejoue.catch(function () {});
+      setTimeout(function () {
+        if (c === s && s.piste && s.mode === 'photo' && !s.occupe && document.visibilityState === 'visible' &&
+            (s.piste.readyState === 'ended' || s.piste.muted)) demarrer();
+      }, 1500);
     });
   }
   function charger(blob) {
