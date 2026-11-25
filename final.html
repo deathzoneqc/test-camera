@@ -132,6 +132,7 @@ window.CameraPlante = (function () {
       '<button class="cp-declencheur" data-a="declencher" aria-label="Déclencher"><i></i></button>' +
       '<button class="cp-terminer" data-a="terminer">Terminer</button>' +
     '</div>' +
+    '<input class="cp-natif" type="file" capture="environment" hidden>' +
     '<div class="cp-panneau" hidden></div>' +
     '<div class="cp-vue" hidden></div>';
 
@@ -177,6 +178,7 @@ window.CameraPlante = (function () {
     q('.cp-titre').textContent = c.o.titre || '';
     racine.addEventListener('click', clic);
     q('.cp-erreur input').addEventListener('change', fichiers);
+    q('.cp-natif').addEventListener('change', fichiers);
     gestesZoom(q('.cp-scene'));
     window.addEventListener('resize', cadrer);
     window.addEventListener('popstate', retourNavigateur);
@@ -383,12 +385,25 @@ window.CameraPlante = (function () {
       var b = document.createElement('button');
       var val = i === actif ? c.zoom : n;
       var t = String(Math.round(val * 10) / 10).replace('.', ',');
-      var absent = (i === 0 && !grand) || (i > 0 && n > zoomMax());
-      b.textContent = i === actif ? t + '×' : t;
+      var externe = i === 0 && !grand && c.face === 'environment';   // 0,5 par l'appareil photo du téléphone
+      var absent = !externe && ((i === 0 && !grand) || (i > 0 && n > zoomMax()));
+      b.textContent = i === actif ? t + '×' : externe ? t + '↗' : t;
+      if (externe) b.setAttribute('data-externe', '1');
       b.className = (i === actif ? 'actif' : '') + (absent ? ' absent' : '');
       b.setAttribute('data-zoom', n);
       boite.appendChild(b);
     });
+  }
+
+  // Le navigateur ne donne pas le grand angle : on ouvre l'appareil photo du téléphone, la prise s'ajoute au plant
+  function grandAngleNatif() {
+    if (c.rec || c.occupe) return;
+    var video = c.mode === 'video';
+    if (video && c.video && !confirm('Remplacer la vidéo déjà prise ?')) return;
+    var i = q('.cp-natif');
+    i.accept = video ? 'video/*' : 'image/*';
+    message('Choisis 0,5 dans l\'appareil photo du téléphone');
+    i.click();
   }
 
   // Pincer pour zoomer et dézoomer
@@ -418,7 +433,8 @@ window.CameraPlante = (function () {
     var b = e.target.closest('button');
     if (!b || !c) return;
     if (b.hasAttribute('data-zoom')) {
-      if (b.classList.contains('absent')) message('Ce zoom n\'est pas disponible ici');
+      if (b.hasAttribute('data-externe')) grandAngleNatif();
+      else if (b.classList.contains('absent')) message('Ce zoom n\'est pas disponible ici');
       else appliquerZoom(parseFloat(b.getAttribute('data-zoom')));
       return;
     }
